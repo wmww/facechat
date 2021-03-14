@@ -45,7 +45,28 @@ class Viewer extends React.Component<{}> {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const faces = await this.detector.estimateFaces({input: video});
-      console.log(faces);
+      this.drawPoints(faces);
+    }
+  }
+
+  drawPoints(faces: any[]) {
+    if (this.canvasRef.current === null) {
+      return;
+    }
+    const ctx = this.canvasRef.current.getContext("2d");
+    if (ctx === null) {
+      console.error('Failed to get 2D drawing context')
+      return;
+    }
+    for (const face of faces) {
+      for (const point of face.scaledMesh) {
+        const x = point[0];
+        const y = point[1];
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, 3 * Math.PI);
+        ctx.fillStyle = 'blue';
+        ctx.fill();
+      }
     }
   }
 
