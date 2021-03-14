@@ -14,26 +14,20 @@ enum MediaReadyState {
   EnoughData = 4,
 }
 
-class Viewer extends React.Component<{}> {
+type ViewerProps = {
+  detector: faceLandmarksDetection.FaceLandmarksDetector,
+}
+
+class Viewer extends React.Component<ViewerProps> {
   readonly webcamRef = React.createRef<Webcam>();
   readonly canvasRef = React.createRef<HTMLCanvasElement>();
-  private detector: faceLandmarksDetection.FaceLandmarksDetector | null = null;
-
-  constructor(props: {}) {
-    super(props);
-    faceLandmarksDetection.load(faceLandmarksDetection.SupportedPackages.mediapipeFacemesh).then(detector => {
-      this.detector = detector;
-    });
-    setInterval(() => {
-      this.detectFace();
-    }, 100);
-  }
+  private componentIsMounted = false;
+  private faces: any[] = [];
 
   async detectFace() {
     const webcam = this.webcamRef.current;
     const canvas = this.canvasRef.current;
     if (
-      this.detector !== null &&
       canvas !== null &&
       webcam !== null &&
       webcam.video !== null &&
@@ -44,8 +38,12 @@ class Viewer extends React.Component<{}> {
       video.height = video.videoHeight;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      const faces = await this.detector.estimateFaces({input: video});
-      this.drawPoints(faces);
+      this.faces = await this.props.detector.estimateFaces({input: video});
+    }
+    if (this.componentIsMounted) {
+      setTimeout(() => {
+        this.detectFace();
+      }, 1);
     }
   }
 
@@ -59,19 +57,38 @@ class Viewer extends React.Component<{}> {
       return;
     }
     for (const face of faces) {
+      console.log('Drawing ' + face.scaledMesh.length + ' points');
       for (const point of face.scaledMesh) {
         const x = point[0];
         const y = point[1];
-        ctx.beginPath();
-        ctx.arc(x, y, 2.5, 0, 3 * Math.PI);
         ctx.fillStyle = 'blue';
-        ctx.fill();
+        ctx.fillRect(x, y, 2, 2);
       }
     }
   }
 
+  draw() {
+    if (this.componentIsMounted) {
+      this.drawPoints(this.faces);
+      window.requestAnimationFrame(() => {
+        this.draw();
+      });
+    }
+  }
+
+  componentDidMount() {
+    this.componentIsMounted = true;
+    this.detectFace();
+    this.draw();
+  }
+
+  componentWillUnmount() {
+    this.componentIsMounted = false;
+  }
+
   render() {
-    return <div>
+    return (
+      <div>
         <Webcam
           ref={this.webcamRef}
           style={{
@@ -81,7 +98,7 @@ class Viewer extends React.Component<{}> {
             left: 0,
             right: 0,
             textAlign: "center",
-            zIndex: 9,
+            zIndex: 1,
             width: 720,
             height: 500,
           }}
@@ -100,14 +117,37 @@ class Viewer extends React.Component<{}> {
             height: 500,
           }}
         />
-    </div>
+      </div>
+    );
+  }
+}
+
+type DetectorState = {
+  detector?: faceLandmarksDetection.FaceLandmarksDetector,
+}
+
+class Detector extends React.Component<{}, DetectorState> {
+  constructor(props: {}) {
+    super(props);
+    this.state = {};
+    faceLandmarksDetection.load(faceLandmarksDetection.SupportedPackages.mediapipeFacemesh).then(detector => {
+      this.setState({detector: detector});
+    });
+  }
+
+  render() {
+    if (this.state.detector === undefined) {
+      return null;
+    } else {
+      return <Viewer detector={this.state.detector} />;
+    }
   }
 }
 
 function App() {
   return (
     <div className="App">
-      <Viewer />
+      <Detector />
     </div>
   );
 }
