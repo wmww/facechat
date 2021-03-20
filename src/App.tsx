@@ -3,6 +3,7 @@ import Webcam from "react-webcam";
 import './App.css';
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
 import { CanvasViewer } from './CanvasViewer';
+import { ThreeViewer } from './ThreeViewer';
 
 require('@tensorflow/tfjs-backend-webgl');
 
@@ -80,6 +81,15 @@ class Viewer extends React.Component<ViewerProps> {
           <CanvasViewer
             ref={this.viewerRef}
           />
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            width: 400,
+            height: 400,
+          }}
+        >
+          <ThreeViewer />
         </div>
       </div>
     );
