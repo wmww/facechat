@@ -60,34 +60,36 @@ class Viewer extends React.Component<ViewerProps> {
 
   render() {
     return (
-      <div
-        style={{
-          position: 'absolute',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          marginBottom: 'auto',
-          left: 0,
-          right: 0,
-          textAlign: "center",
-          width: 720,
-          height: 500,
-        }}
-      >
-        <Webcam
-          ref={this.webcamRef}
-          style={{
-            position: 'absolute',
-            left: 0,
-          }}
-        />
+      <div>
         <div
           style={{
             position: 'absolute',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginBottom: 'auto',
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            width: 720,
+            height: 500,
           }}
         >
-          <CanvasViewer
-            ref={this.canvasViewerRef}
+          <Webcam
+            ref={this.webcamRef}
+            style={{
+              position: 'absolute',
+              left: 0,
+            }}
           />
+          <div
+            style={{
+              position: 'absolute',
+            }}
+          >
+            <CanvasViewer
+              ref={this.canvasViewerRef}
+            />
+          </div>
         </div>
         <div
           style={{

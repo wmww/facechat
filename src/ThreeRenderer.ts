@@ -1,16 +1,22 @@
 import * as THREE from 'three';
-import { AnnotatedPrediction } from '@tensorflow-models/face-landmarks-detection/dist/mediapipe-facemesh';
-import { TRIANGULATION, vertexCount } from './triangulation'
+import type { AnnotatedPrediction } from '@tensorflow-models/face-landmarks-detection/dist/mediapipe-facemesh';
+import { triangulation, vertexCount } from './triangulation'
 
 export class ThreeRenderer {
   readonly scene = new THREE.Scene();
   readonly renderer: THREE.WebGLRenderer;
   readonly camera: THREE.OrthographicCamera;
   readonly geometry = new THREE.BufferGeometry();
-  readonly material = new THREE.LineBasicMaterial({color: 0x80FF00});
+  readonly material = new THREE.MeshBasicMaterial({
+    color: 0x80FF00,
+    side: THREE.DoubleSide,
+    wireframe: true,
+  });
   readonly positions = new Float32Array(vertexCount * 3); // 3 coordinates per point
-  readonly line: THREE.Line;
+  readonly mesh: THREE.Mesh;
   private dead = false;
+
+  // private points: THREE.Points[] = [];
 
   constructor(
     readonly canvas: HTMLCanvasElement
@@ -20,15 +26,30 @@ export class ThreeRenderer {
       antialias: false,
     });
     this.renderer.setClearColor(0x000000, 1.0);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+
 
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -1, 1000);
     this.scene.add(this.camera);
 
+    this.geometry.setIndex(triangulation);
     this.geometry.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
-    this.geometry.setDrawRange(0, vertexCount);
-    this.line = new THREE.Line(this.geometry, this.material);
-    this.scene.add(this.line);
-    // positions = line.geometry.attributes.position.array;
+    this.mesh = new THREE.Mesh(this.geometry, this.material);
+    this.scene.add(this.mesh);
+
+    /*
+    const pointGeom = new THREE.BufferGeometry();
+    const positionAttrib = new THREE.BufferAttribute(new Float32Array([0, 0, 0]), 3);
+    positionAttrib.setUsage(THREE.StreamDrawUsage)
+    pointGeom.setAttribute('position', positionAttrib);
+    const pointMat = new THREE.PointsMaterial({ color: 0xffffff });
+    for (let i = 0; i < vertexCount; i++) {
+      const point = new THREE.Points(pointGeom, pointMat);
+      this.scene.add(point);
+      this.points.push(point);
+    }
+    */
 
     this.draw();
   }
@@ -43,12 +64,10 @@ export class ThreeRenderer {
     }
     for (let i = 0; i < mesh.length && i < vertexCount; i++) {
       this.positions[i * 3    ] = mesh[i][0] * 0.01 - 1;
-      this.positions[i * 3 + 1] = mesh[i][1] * 0.01 - 1;
-      this.positions[i * 3 + 2] = mesh[i][2] - 100;
+      this.positions[i * 3 + 1] = mesh[i][1] * -0.01 + 1;
+      this.positions[i * 3 + 2] = mesh[i][2] * 0.01 - 1;
     }
-    this.positions[0] = 0;
-    this.positions[1] = 0;
-    this.positions[2] = 0;
+
     this.geometry.attributes.position.needsUpdate = true
     // shouldn't need these?
     // this.geometry.computeBoundingBox();
