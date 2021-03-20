@@ -2,7 +2,7 @@ import React from 'react';
 import Webcam from "react-webcam";
 import './App.css';
 import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
-import { TRIANGULATION } from './triangulation';
+import { CanvasViewer } from './CanvasViewer';
 
 require('@tensorflow/tfjs-backend-webgl');
 
@@ -21,15 +21,13 @@ type ViewerProps = {
 
 class Viewer extends React.Component<ViewerProps> {
   readonly webcamRef = React.createRef<Webcam>();
-  readonly canvasRef = React.createRef<HTMLCanvasElement>();
-  private componentIsMounted = false;
-  private faces: any[] = [];
+  readonly viewerRef = React.createRef<CanvasViewer>();
 
   async detectFace() {
     const webcam = this.webcamRef.current;
-    const canvas = this.canvasRef.current;
+    const viewer = this.viewerRef.current;
     if (
-      canvas !== null &&
+      viewer !== null &&
       webcam !== null &&
       webcam.video !== null &&
       webcam.video.readyState === MediaReadyState.EnoughData
@@ -37,101 +35,52 @@ class Viewer extends React.Component<ViewerProps> {
       const video = webcam.video;
       video.width = video.videoWidth;
       video.height = video.videoHeight;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      this.faces = await this.props.detector.estimateFaces({input: video});
+      viewer.setSize(video.videoWidth, video.videoHeight);
+      const faces = await this.props.detector.estimateFaces({input: video});
+      viewer.setFaces(faces);
     }
-    if (this.componentIsMounted) {
+    if (this.webcamRef !== null) {
       setTimeout(() => {
         this.detectFace();
       }, 1);
     }
   }
 
-  drawPoints(faces: any[]) {
-    if (this.canvasRef.current === null) {
-      return;
-    }
-    const ctx = this.canvasRef.current.getContext("2d");
-    if (ctx === null) {
-      console.error('Failed to get 2D drawing context')
-      return;
-    }
-    for (const face of faces) {
-      for (let i = 0; i < TRIANGULATION.length; i += 3) {
-        for (let j = 0; j < 3; j += 1) {
-          ctx.strokeStyle = 'green';
-          const a = i + j;
-          const b = i + (j + 1) % 3;
-          const ax = face.scaledMesh[TRIANGULATION[a]][0];
-          const ay = face.scaledMesh[TRIANGULATION[a]][1];
-          const bx = face.scaledMesh[TRIANGULATION[b]][0];
-          const by = face.scaledMesh[TRIANGULATION[b]][1];
-          ctx.beginPath();
-          ctx.moveTo(ax, ay);
-          ctx.lineTo(bx, by);
-          ctx.stroke();
-        }
-      }
-      for (const point of face.scaledMesh) {
-        const x = point[0];
-        const y = point[1];
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(x, y, 2, 2);
-      }
-    }
-  }
-
-  draw() {
-    if (this.componentIsMounted) {
-      this.drawPoints(this.faces);
-      window.requestAnimationFrame(() => {
-        this.draw();
-      });
-    }
-  }
-
   componentDidMount() {
-    this.componentIsMounted = true;
     this.detectFace();
-    this.draw();
-  }
-
-  componentWillUnmount() {
-    this.componentIsMounted = false;
   }
 
   render() {
     return (
-      <div>
+      <div
+        style={{
+          position: 'absolute',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          marginBottom: 'auto',
+          left: 0,
+          right: 0,
+          textAlign: "center",
+          width: 720,
+          height: 500,
+        }}
+      >
         <Webcam
           ref={this.webcamRef}
           style={{
-            position: "absolute",
-            marginLeft: "auto",
-            marginRight: "auto",
+            position: 'absolute',
             left: 0,
-            right: 0,
-            textAlign: "center",
-            zIndex: 1,
-            width: 720,
-            height: 500,
           }}
         />
-        <canvas
-          ref={this.canvasRef}
+        <div
           style={{
-            position: "absolute",
-            marginLeft: "auto",
-            marginRight: "auto",
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            zIndex: 9,
-            width: 720,
-            height: 500,
+            position: 'absolute',
           }}
-        />
+        >
+          <CanvasViewer
+            ref={this.viewerRef}
+          />
+        </div>
       </div>
     );
   }
