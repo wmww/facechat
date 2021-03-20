@@ -22,13 +22,16 @@ type ViewerProps = {
 
 class Viewer extends React.Component<ViewerProps> {
   readonly webcamRef = React.createRef<Webcam>();
-  readonly viewerRef = React.createRef<CanvasViewer>();
+  readonly canvasViewerRef = React.createRef<CanvasViewer>();
+  readonly threeViewerRef = React.createRef<ThreeViewer>();
 
   async detectFace() {
     const webcam = this.webcamRef.current;
-    const viewer = this.viewerRef.current;
+    const canvasViewer = this.canvasViewerRef.current;
+    const threeViewer = this.threeViewerRef.current;
     if (
-      viewer !== null &&
+      canvasViewer !== null &&
+      threeViewer !== null &&
       webcam !== null &&
       webcam.video !== null &&
       webcam.video.readyState === MediaReadyState.EnoughData
@@ -36,9 +39,13 @@ class Viewer extends React.Component<ViewerProps> {
       const video = webcam.video;
       video.width = video.videoWidth;
       video.height = video.videoHeight;
-      viewer.setSize(video.videoWidth, video.videoHeight);
-      const faces = await this.props.detector.estimateFaces({input: video});
-      viewer.setFaces(faces);
+      canvasViewer.setSize(video.videoWidth, video.videoHeight);
+      const faces = await this.props.detector.estimateFaces({
+        input: video,
+        predictIrises: false,
+      });
+      canvasViewer.setFaces(faces);
+      threeViewer.setFaces(faces);
     }
     if (this.webcamRef !== null) {
       setTimeout(() => {
@@ -79,7 +86,7 @@ class Viewer extends React.Component<ViewerProps> {
           }}
         >
           <CanvasViewer
-            ref={this.viewerRef}
+            ref={this.canvasViewerRef}
           />
         </div>
         <div
@@ -89,7 +96,9 @@ class Viewer extends React.Component<ViewerProps> {
             height: 400,
           }}
         >
-          <ThreeViewer />
+          <ThreeViewer
+            ref={this.threeViewerRef}
+          />
         </div>
       </div>
     );
